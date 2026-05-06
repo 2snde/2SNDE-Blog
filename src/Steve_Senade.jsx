@@ -129,7 +129,7 @@ const CC=[["rgba(180,83,9,0.08)","#92400e","rgba(180,83,9,0.2)"],["rgba(5,150,10
 function cs(i){const[bg,fg,bd]=CC[i%CC.length];return{background:bg,color:fg,border:`1px solid ${bd}`};}
 const TI={podcast:"🎙️",call:"📞",vlog:"🎬",interview:"💬"};
 const SS={live:{bg:"rgba(52,211,153,0.1)",c:"#34d399",bd:"rgba(52,211,153,0.28)"},wip:{bg:"rgba(251,146,60,0.1)",c:"#fb923c",bd:"rgba(251,146,60,0.28)"}};
-function useStore(k,d){const[v,s]=useState(()=>{try{const x=localStorage.getItem(k);return x?JSON.parse(x):d;}catch{return d;}});useEffect(()=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}},[v]);return[v,s];}
+function useStore(k,d){const[v,s]=useState(()=>{try{const x=localStorage.getItem(k);return x?JSON.parse(x):d;}catch{return d;}});useEffect(()=>{try{localStorage.setItem(k,JSON.stringify(v));}catch{}},[k,v]);return[v,s]}
 function f2b(f){return new Promise((r,j)=>{const x=new FileReader();x.onload=()=>r(x.result);x.onerror=j;x.readAsDataURL(f);});}
 const LANG_CHIP={FR:{bg:"rgba(79,156,249,0.15)",c:"#82baff",bd:"rgba(79,156,249,0.3)"},EN:{bg:"rgba(52,211,153,0.12)",c:"#34d399",bd:"rgba(52,211,153,0.25)"}};
 
@@ -244,11 +244,13 @@ export default function App(){
   const[images,setImages]=useState([]);
   const taRef=useRef();const asRef=useRef();const stRef=useRef();
 
-  useEffect(()=>{const fn=()=>setScrolled(window.scrollY>20);window.addEventListener("scroll",fn);return()=>window.removeEventListener("scroll",fn);},[]);
-  useEffect(()=>{if(view!=="editor")return;clearTimeout(asRef.current);setSaveStatus("saving");asRef.current=setTimeout(()=>{setSaveStatus("saved");clearTimeout(stRef.current);stRef.current=setTimeout(()=>setSaveStatus("idle"),2500);},900);},[draft]);
-  useEffect(()=>{const fn=(e)=>{if((e.metaKey||e.ctrlKey)&&e.key==="s"&&view==="editor"){e.preventDefault();savePost();}};window.addEventListener("keydown",fn);return()=>window.removeEventListener("keydown",fn);},[view,draft,editId,images]);
+  const notify=useCallback((m,type="success")=>{setToast({m,type});setTimeout(()=>setToast(null),2800);},[]);
+  const savePost=useCallback(()=>{if(!draft.title.trim()){notify(t.titleRequired,"error");return;}const tags=draft.tags.split(",").map(x=>x.trim()).filter(Boolean);if(editId){setArticles(p=>p.map(a=>a.id===editId?{...a,title:draft.title,tags,content:draft.content,images,lang:draft.lang}:a));notify(t.articleUpdated);}else{setArticles(p=>[{id:Date.now(),pinned:false,title:draft.title,slug:draft.title.toLowerCase().replace(/\s+/g,"-").replace(/[^\w-]/g,""),date:new Date().toISOString().split("T")[0],tags,content:draft.content,images,lang:draft.lang},...p]);notify(t.articlePublished);}setView("list");},[draft,editId,images,t,setArticles,notify]);
 
-  const notify=(m,type="success")=>{setToast({m,type});setTimeout(()=>setToast(null),2800);};
+  useEffect(()=>{const fn=()=>setScrolled(window.scrollY>20);window.addEventListener("scroll",fn);return()=>window.removeEventListener("scroll",fn);},[]);
+  useEffect(()=>{if(view!=="editor")return;clearTimeout(asRef.current);setSaveStatus("saving");asRef.current=setTimeout(()=>{setSaveStatus("saved");clearTimeout(stRef.current);stRef.current=setTimeout(()=>setSaveStatus("idle"),2500);},900);},[draft,view]);
+  useEffect(()=>{const fn=(e)=>{if((e.metaKey||e.ctrlKey)&&e.key==="s"&&view==="editor"){e.preventDefault();savePost();}};window.addEventListener("keydown",fn);return()=>window.removeEventListener("keydown",fn);},[view,draft,editId,images,savePost]);
+
   const navTo=(s)=>{setSection(s);setView("list");setCurrent(null);setFilterTag(null);setFilterCat(null);setFilterLang(null);window.scrollTo(0,0);};
   const toggleLang=()=>setLang(l=>l==="FR"?"EN":"FR");
 
@@ -259,7 +261,6 @@ export default function App(){
   const pinnedPost=filtered.find(a=>a.pinned);const restPosts=filtered.filter(a=>!a.pinned);
   const openNew=()=>{setDraft({title:"",tags:"",content:"# Title\n\nStart writing...",lang});setEditId(null);setImages([]);setView("editor");};
   const openEdit=(a)=>{setDraft({title:a.title,tags:a.tags.join(", "),content:a.content,lang:a.lang||"FR"});setEditId(a.id);setImages(a.images||[]);setView("editor");};
-  const savePost=useCallback(()=>{if(!draft.title.trim()){notify(t.titleRequired,"error");return;}const tags=draft.tags.split(",").map(x=>x.trim()).filter(Boolean);if(editId){setArticles(p=>p.map(a=>a.id===editId?{...a,title:draft.title,tags,content:draft.content,images,lang:draft.lang}:a));notify(t.articleUpdated);}else{setArticles(p=>[{id:Date.now(),pinned:false,title:draft.title,slug:draft.title.toLowerCase().replace(/\s+/g,"-").replace(/[^\w-]/g,""),date:new Date().toISOString().split("T")[0],tags,content:draft.content,images,lang:draft.lang},...p]);notify(t.articlePublished);}setView("list");},[draft,editId,images,t]);
   const delPost=(id)=>{setArticles(p=>p.filter(a=>a.id!==id));setView("list");notify(t.articleDeleted);};
   const togglePinPost=(id,e)=>{if(e)e.stopPropagation();setArticles(p=>{const target=p.find(a=>a.id===id);if(target.pinned)return p.map(a=>a.id===id?{...a,pinned:false}:a);const pinCount=p.filter(a=>a.pinned).length;if(pinCount>=2)return p;return p.map(a=>a.id===id?{...a,pinned:true}:a);});};
 

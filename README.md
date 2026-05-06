@@ -38,7 +38,7 @@ No backend. No database. No build-time CMS. Everything runs in the browser.
 ## Project structure
 
 ```
-2snde-pro/
+domain.name/
 ├── public/
 │   └── index.html          # HTML entry point + SEO meta tags
 ├── src/
@@ -55,8 +55,8 @@ No backend. No database. No build-time CMS. Everything runs in the browser.
 
 ```bash
 # Clone
-git clone https://github.com/stevesenade/2snde-pro.git
-cd 2snde-pro
+git clone https://github.com/stevesenade/X.git
+cd name website
 
 # Install
 npm install

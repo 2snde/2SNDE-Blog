@@ -1,0 +1,21 @@
+  const taRef=useRef();const asRef=useRef();const stRef=useRef();
+
+  useEffect(()=>{const fn=()=>setScrolled(window.scrollY>20);window.addEventListener("scroll",fn);return()=>window.removeEventListener("scroll",fn);},[]);
+  useEffect(()=>{if(view!=="editor")return;clearTimeout(asRef.current);setSaveStatus("saving");asRef.current=setTimeout(()=>{setSaveStatus("saved");clearTimeout(stRef.current);stRef.current=setTimeout(()=>setSaveStatus("idle"),2500);},900);},[draft,view]);
+  useEffect(()=>{const fn=(e)=>{if((e.metaKey||e.ctrlKey)&&e.key==="s"&&view==="editor"){e.preventDefault();savePost();}};window.addEventListener("keydown",fn);return()=>window.removeEventListener("keydown",fn);},[view,draft,editId,images,savePost]);
+
+  const notify=(m,type="success")=>{setToast({m,type});setTimeout(()=>setToast(null),2800);};
+  const navTo=(s)=>{setSection(s);setView("list");setCurrent(null);setFilterTag(null);setFilterCat(null);setFilterLang(null);window.scrollTo(0,0);};
+  const toggleLang=()=>setLang(l=>l==="FR"?"EN":"FR");
+
+  // Posts
+  const allTags=[...new Set(articles.flatMap(a=>a.tags))];
+  const tagCounts=allTags.reduce((a,x)=>{a[x]=articles.filter(y=>y.tags.includes(x)).length;return a;},{});
+  const filtered=articles.filter(a=>(!filterTag||a.tags.includes(filterTag))&&(!filterLang||a.lang===filterLang));
+  const pinnedPost=filtered.find(a=>a.pinned);const restPosts=filtered.filter(a=>!a.pinned);
+  const openNew=()=>{setDraft({title:"",tags:"",content:"# Title\n\nStart writing...",lang});setEditId(null);setImages([]);setView("editor");};
+  const openEdit=(a)=>{setDraft({title:a.title,tags:a.tags.join(", "),content:a.content,lang:a.lang||"FR"});setEditId(a.id);setImages(a.images||[]);setView("editor");};
+  const savePost=useCallback(()=>{if(!draft.title.trim()){notify(t.titleRequired,"error");return;}const tags=draft.tags.split(",").map(x=>x.trim()).filter(Boolean);if(editId){setArticles(p=>p.map(a=>a.id===editId?{...a,title:draft.title,tags,content:draft.content,images,lang:draft.lang}:a));notify(t.articleUpdated);}else{setArticles(p=>[{id:Date.now(),pinned:false,title:draft.title,slug:draft.title.toLowerCase().replace(/\s+/g,"-").replace(/[^\w-]/g,""),date:new Date().toISOString().split("T")[0],tags,content:draft.content,images,lang:draft.lang},...p]);notify(t.articlePublished);}setView("list");},[draft,editId,images,t,setArticles]);
+  const delPost=(id)=>{setArticles(p=>p.filter(a=>a.id!==id));setView("list");notify(t.articleDeleted);};
+  const togglePinPost=(id,e)=>{if(e)e.stopPropagation();setArticles(p=>{const target=p.find(a=>a.id===id);if(target.pinned)return p.map(a=>a.id===id?{...a,pinned:false}:a);const pinCount=p.filter(a=>a.pinned).length;if(pinCount>=2)return p;return p.map(a=>a.id===id?{...a,pinned:true}:a);});};
+

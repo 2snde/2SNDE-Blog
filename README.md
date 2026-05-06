@@ -68,11 +68,6 @@ npm start
 
 ---
 
-## Deploy to Cloudflare Pages
-
-1. Push this repo to GitHub
-2. Go to [Cloudflare Pages](https://pages.cloudflare.com) → New project → Connect GitHub repo
-3. Set build configuration:
 
 | Setting | Value |
 |---|---|
